@@ -1,0 +1,842 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Einkaufs-Helfer</title>
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#22B573">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Einkauf">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" type="image/png" href="icon-192.png">
+<style>
+  :root{
+    --bg:#FFF7EC; --card:#FFFFFF; --ink:#2B2A33; --muted:#7A7686;
+    --green:#22B573; --green-d:#178A57; --orange:#FF8A3D; --red:#F0565B;
+    --blue:#3D8BFF; --yellow:#FFD23F; --line:#EFE4D3;
+    --radius:28px;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;height:100%}
+  body{
+    font-family:ui-rounded,'SF Pro Rounded','Nunito','Varela Round',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--ink);
+    padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+  }
+  button{font-family:inherit;cursor:pointer;border:0}
+  .wrap{max-width:560px;margin:0 auto;padding:18px 16px 40px;min-height:100%}
+  .hidden{display:none!important}
+
+  /* ---------- Eltern ---------- */
+  h1{font-size:26px;white-space:nowrap;margin:6px 0 2px;font-weight:700}
+  .sub{color:var(--muted);margin:0 0 18px;font-size:16px}
+  .entry{background:var(--card);border-radius:22px;padding:14px;box-shadow:0 2px 0 var(--line)}
+  textarea{
+    width:100%;min-height:110px;border:2px solid var(--line);border-radius:16px;padding:12px 14px;
+    font:inherit;font-size:18px;resize:vertical;background:#FFFDF9;color:var(--ink);outline:none
+  }
+  textarea:focus{border-color:var(--orange)}
+  .row{display:flex;gap:10px;align-items:center}
+  .btn{border-radius:16px;padding:12px 18px;font-size:18px;font-weight:600}
+  .btn-orange{background:var(--orange);color:#fff;box-shadow:0 4px 0 #D96A22}
+  .btn-orange:active{transform:translateY(3px);box-shadow:0 1px 0 #D96A22}
+  .hint{color:var(--muted);font-size:14px;margin-top:8px}
+  .list{list-style:none;padding:0;margin:18px 0}
+  .item{
+    display:flex;align-items:center;gap:12px;background:var(--card);border-radius:18px;
+    padding:8px 10px;margin-bottom:8px;box-shadow:0 2px 0 var(--line)
+  }
+  .thumb{
+    width:56px;height:56px;border-radius:14px;display:grid;place-items:center;font-size:36px;
+    background:#FFF1DE;overflow:hidden;flex:none
+  }
+  .thumb img{width:100%;height:100%;object-fit:cover}
+  .thumb.letter{font-size:26px;font-weight:700;color:#fff}
+  .item .name{flex:1;font-size:19px;font-weight:500;line-height:1.15}
+  .item .qty{display:block;color:var(--muted);font-size:14px;font-weight:400}
+  .item .st{font-size:13px;font-weight:600;padding:2px 8px;border-radius:99px;margin-left:6px;vertical-align:middle}
+  .st.done{background:#DFF6EA;color:var(--green-d)} .st.missing{background:#FDE3E4;color:#C23A3F}
+  .icon-btn{width:42px;height:42px;border-radius:12px;background:#F6EEE2;font-size:20px;display:grid;place-items:center;flex:none}
+  .icon-btn:active{background:#EADFCF}
+  .empty{text-align:center;color:var(--muted);padding:26px 10px;font-size:17px}
+  .go{
+    width:100%;font-size:26px;font-weight:700;padding:20px;border-radius:24px;background:var(--green);color:#fff;
+    box-shadow:0 6px 0 var(--green-d);margin-top:6px
+  }
+  .go:active{transform:translateY(4px);box-shadow:0 2px 0 var(--green-d)}
+  .go:disabled{background:#CFCAC0;box-shadow:0 6px 0 #B5AFA3}
+  .links{display:flex;flex-wrap:wrap;justify-content:center;margin-top:16px;gap:4px 14px}
+  .link{white-space:nowrap}
+  .link{background:none;color:var(--muted);font-size:15px;text-decoration:underline;padding:6px}
+  .link.danger{color:var(--red)}
+
+  /* ---------- Kind ---------- */
+  #kid{display:flex;flex-direction:column;min-height:100vh;min-height:100dvh;max-width:560px;margin:0 auto;padding:14px 16px 20px}
+  .topbar{display:flex;align-items:center;gap:10px}
+  .bar{flex:1;height:18px;background:#F0E5D4;border-radius:99px;overflow:hidden}
+  .bar>div{height:100%;background:linear-gradient(90deg,var(--yellow),var(--green));border-radius:99px;transition:width .4s}
+  .count{font-weight:700;font-size:20px;min-width:58px;text-align:center}
+  .round{width:48px;height:48px;border-radius:50%;background:#fff;font-size:22px;box-shadow:0 2px 0 var(--line);position:relative;overflow:hidden;flex:none}
+  .round .fill{position:absolute;left:0;bottom:0;width:100%;height:0;background:rgba(255,138,61,.35)}
+  .round span{position:relative}
+  .stage{flex:1;display:flex;align-items:center;justify-content:center;padding:14px 0}
+  .card{
+    width:100%;background:var(--card);border-radius:36px;padding:26px 20px 24px;text-align:center;
+    box-shadow:0 8px 0 var(--line),0 18px 40px rgba(120,90,40,.10);position:relative
+  }
+  .card.in{animation:pop .45s cubic-bezier(.2,1.4,.4,1)}
+  .card.out{animation:fly .35s ease-in forwards}
+  .card.back{animation:back .35s ease-out}
+  @keyframes pop{from{transform:scale(.6) rotate(-4deg);opacity:0}to{transform:none;opacity:1}}
+  @keyframes fly{to{transform:translateX(120%) rotate(18deg);opacity:0}}
+  @keyframes back{from{transform:translateX(-60%);opacity:0}to{transform:none;opacity:1}}
+  .pic{width:min(62vw,260px);height:min(62vw,260px);margin:0 auto;display:grid;place-items:center;border-radius:30px;background:#FFF4E4;overflow:hidden}
+  .pic .emo{font-size:min(44vw,180px);line-height:1}
+  .pic img{width:100%;height:100%;object-fit:cover}
+  .pic.letter{font-size:min(36vw,150px);font-weight:700;color:#fff}
+  .kname{font-size:clamp(32px,9vw,46px);font-weight:700;margin:16px 0 4px;line-height:1.05;word-break:break-word}
+  .kqty{display:inline-block;background:var(--yellow);color:#5A4300;font-weight:700;font-size:24px;padding:4px 16px;border-radius:99px;margin-top:6px}
+  .repeat{font-size:34px;letter-spacing:4px;margin-top:10px;line-height:1.3}
+  .speak{position:absolute;right:14px;top:14px;width:52px;height:52px;border-radius:50%;background:#EAF2FF;font-size:24px}
+  .done-btn{
+    width:100%;font-size:34px;font-weight:700;padding:22px;border-radius:28px;background:var(--green);color:#fff;
+    box-shadow:0 8px 0 var(--green-d);letter-spacing:.5px
+  }
+  .done-btn:active{transform:translateY(6px);box-shadow:0 2px 0 var(--green-d)}
+  .minor{display:flex;gap:10px;margin-top:16px}
+  .minor{gap:8px!important}
+  #skipBtn{color:var(--orange)}
+  .minor button{flex:1;font-size:17px;font-weight:600;padding:12px 4px;white-space:nowrap;border-radius:18px;background:#fff;color:var(--muted);box-shadow:0 3px 0 var(--line)}
+  .minor button:disabled{opacity:.35}
+
+  /* ---------- Fertig ---------- */
+  #finish{text-align:center;padding-top:8vh}
+  .big{font-size:110px;line-height:1;animation:bounce 1s ease-in-out infinite alternate}
+  @keyframes bounce{to{transform:translateY(-14px) rotate(6deg)}}
+  #finish h2{font-size:40px;margin:16px 0 6px}
+  #finish p{font-size:20px;color:var(--muted);margin:0 0 22px}
+  .missing-box{background:#fff;border-radius:22px;padding:14px 16px;text-align:left;margin:0 0 22px;box-shadow:0 2px 0 var(--line)}
+  .missing-box b{display:block;margin-bottom:6px;color:#C23A3F}
+  .confetti{position:fixed;top:-60px;font-size:30px;pointer-events:none;animation:fall linear forwards;z-index:9}
+  @keyframes fall{to{transform:translateY(115vh) rotate(540deg)}}
+
+  /* Dialog */
+  .dialog{position:fixed;inset:0;background:rgba(43,42,51,.45);display:grid;place-items:center;padding:20px;z-index:20}
+  .dialog>div{background:#fff;border-radius:24px;padding:22px;max-width:360px;width:100%;text-align:center}
+  .dialog p{font-size:19px;margin:0 0 18px}
+  .dialog .row{justify-content:center}
+  .btn-grey{background:#F0E9DE;color:var(--ink)}
+  .btn-red{background:var(--red);color:#fff}
+  .btn-green{background:var(--green);color:#fff}
+  .dialog .row{flex-wrap:wrap;gap:8px}
+  .dialog .row .btn{flex:1 1 auto}
+  .dialog input{width:100%;font:inherit;font-size:19px;padding:10px 14px;border:2px solid var(--line);border-radius:14px;margin:0 0 16px;outline:none}
+  .dialog input:focus{border-color:var(--orange)}
+
+  /* Speichern / Vorlagen / Bearbeiten */
+  .head{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:0 10px}
+  .sync{font-size:13px;font-weight:500;padding:4px 10px;border-radius:99px;background:#F0E9DE;color:var(--muted);white-space:nowrap;margin-top:4px}
+  .sync.ok{background:#DFF6EA;color:var(--green-d)}
+  .sync.warn{background:#FFF0D6;color:#9A6200}
+  .saved{margin:22px 0 6px}
+  .saved h3{font-size:18px;margin:0 0 8px;font-weight:600}
+  .chips{display:flex;flex-wrap:wrap;gap:8px}
+  .chip{display:inline-flex;align-items:center;background:#fff;border-radius:99px;box-shadow:0 2px 0 var(--line);font-size:16px;font-weight:500;overflow:hidden}
+  .chip button{background:none;padding:9px 6px 9px 14px;font-size:16px;font-weight:500;color:var(--ink)}
+  .chip button.x{padding:9px 12px 9px 6px;color:var(--muted);font-size:14px}
+  .chip.new{background:var(--blue)} .chip.new button{color:#fff;padding:9px 14px}
+  .tab{background:#fff;border-radius:99px;padding:9px 16px;font-size:16px;font-weight:600;color:var(--ink);box-shadow:0 2px 0 var(--line)}
+  .tab small{color:var(--muted);font-weight:500}
+  .tab.on{background:var(--ink);color:#fff;box-shadow:0 2px 0 #000}
+  .tab.on small{color:#CFCBD8}
+  .tab.add{background:#EAF2FF;color:var(--blue)}
+  .listhead{display:flex;align-items:center;gap:8px;margin:0 0 10px}
+  .listhead h2{flex:1;margin:0;font-size:24px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .kidlist{text-align:center;color:var(--muted);font-weight:600;font-size:16px;margin-top:10px}
+  .share{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px}
+  .sbtn{flex:1 1 140px;text-align:center;text-decoration:none;background:#fff;color:var(--ink);font-size:16px;font-weight:600;padding:12px 10px;border-radius:16px;box-shadow:0 2px 0 var(--line)}
+  .sbtn.wa{background:#25D366;color:#fff;box-shadow:0 3px 0 #1A9E4B}
+  .sbtn.wa.off{opacity:.4;pointer-events:none}
+  .dialog textarea{width:100%;min-height:150px;font:inherit;font-size:17px;padding:10px 12px;border:2px solid var(--line);border-radius:14px;margin:0 0 16px;outline:none;resize:vertical}
+  .toast{position:fixed;left:50%;bottom:30px;width:max-content;max-width:90vw;text-align:center;transform:translateX(-50%);background:var(--ink);color:#fff;padding:12px 20px;border-radius:99px;font-size:16px;z-index:30;transition:opacity .3s}
+  .edit-input{width:100%;font:inherit;font-size:19px;padding:6px 10px;border:2px solid var(--orange);border-radius:12px;outline:none}
+  .item .name{cursor:text}
+</style>
+</head>
+<body>
+
+<!-- ===================== ELTERN ===================== -->
+<section id="parent" class="wrap">
+  <div class="head">
+    <h1>🛒 Einkaufs-Helfer</h1>
+    <span class="sync" id="sync">💾 lädt…</span>
+  </div>
+  <p class="sub">Liste schreiben, dann aufs Handy deines Kindes – es sieht ein Bild nach dem anderen.</p>
+
+  <div class="saved" style="margin-top:0;margin-bottom:14px">
+    <div class="chips" id="chips"></div>
+  </div>
+
+  <div class="listhead">
+    <h2 id="listName">Einkaufsliste</h2>
+    <button class="icon-btn" id="renameBtn" title="Umbenennen">✏️</button>
+    <button class="icon-btn" id="copyBtn" title="Liste kopieren">📄</button>
+    <button class="icon-btn" id="delListBtn" title="Liste löschen">🗑️</button>
+  </div>
+
+  <div class="entry">
+    <textarea id="input" placeholder="Milch&#10;6 Eier&#10;2 Bananen&#10;500 g Faschiertes"></textarea>
+    <div class="row" style="margin-top:10px;justify-content:space-between">
+      <div class="hint" style="margin:0">Ein Artikel pro Zeile (oder mit Komma)</div>
+      <button class="btn btn-orange" id="addBtn">Hinzufügen</button>
+    </div>
+  </div>
+
+  <ul class="list" id="list"></ul>
+  <div class="empty" id="emptyMsg">Noch nichts auf dieser Liste.<br>Schreib oben, was ihr braucht 🙂</div>
+
+  <button class="go" id="goBtn">Los geht's! ▶</button>
+  <div class="links">
+    <button class="link" id="restartBtn">Alle wieder offen</button>
+    <button class="link" id="cleanBtn">Erledigte entfernen</button>
+    <button class="link danger" id="clearBtn">Alle Artikel löschen</button>
+  </div>
+  <div class="share">
+    <a class="sbtn wa" id="waLink" href="#" target="_blank" rel="noopener">📤 Per WhatsApp senden</a>
+    <button class="sbtn" id="copyTextBtn">📋 Text kopieren</button>
+    <button class="sbtn" id="importBtn">📥 Aus WhatsApp einfügen</button>
+  </div>
+  <p class="hint">📚 Oben wechselst du zwischen deinen Listen; mit „＋ Neue Liste“ legst du eine weitere an. ✏️ benennt um, 📄 kopiert (z. B. als Vorlage für nächste Woche).<br>✏️ Tipp auf einen Artikel, um ihn zu ändern. Alles wird automatisch auf diesem Handy gespeichert – auch ohne Internet.<br>📷 Beim Artikel auf 📷 tippen: Foto machen oder aus der Galerie wählen (z. B. eure Lieblings-Milch). Die App merkt es sich.<br>💬 Eine Liste aus WhatsApp: Nachricht lange drücken → Kopieren, dann hier „📥 Aus WhatsApp einfügen“.</p>
+  <input type="file" id="fileInput" accept="image/*" class="hidden">
+  <input type="file" id="camInput" accept="image/*" capture="environment" class="hidden">
+</section>
+
+<!-- ===================== KIND ===================== -->
+<section id="kid" class="hidden">
+  <div class="topbar">
+    <button class="round" id="parentBtn" title="Gedrückt halten für Eltern"><div class="fill" id="holdFill"></div><span>🔒</span></button>
+    <div class="bar"><div id="barFill"></div></div>
+    <div class="count" id="count">1/5</div>
+    <button class="round" id="soundBtn"><span id="soundIcon">🔊</span></button>
+  </div>
+
+  <div class="kidlist" id="kidList"></div>
+  <div class="stage">
+    <div class="card in" id="card">
+      <button class="speak" id="speakBtn" aria-label="Vorlesen">🗣️</button>
+      <div class="pic" id="pic"></div>
+      <div class="kname" id="kname"></div>
+      <div id="kqtyWrap"></div>
+      <div class="repeat" id="repeat"></div>
+    </div>
+  </div>
+
+  <button class="done-btn" id="doneBtn">Erledigt ✓</button>
+  <div class="minor">
+    <button id="backBtn">↩ Zurück</button>
+    <button id="skipBtn">Später ↷</button>
+    <button id="missBtn">Gibt's nicht ✗</button>
+  </div>
+</section>
+
+<!-- ===================== FERTIG ===================== -->
+<section id="finish" class="wrap hidden">
+  <div class="big">🎉</div>
+  <h2>Super gemacht!</h2>
+  <p>Alles erledigt – danke fürs Helfen! 💚</p>
+  <div class="missing-box hidden" id="missingBox"><b>Nicht gefunden:</b><span id="missingList"></span></div>
+  <button class="go" id="toParentBtn">Zur Liste</button>
+</section>
+
+<div class="dialog hidden" id="dialog"><div>
+  <p id="dialogText"></p>
+  <input id="dialogInput" class="hidden" maxlength="40">
+  <textarea id="dialogArea" class="hidden" placeholder="Hier die WhatsApp-Nachricht einfügen (lange drücken → Einfügen)"></textarea>
+  <div class="row" id="dialogBtns"></div>
+</div></div>
+
+<script>
+/* ---------------- Bilder-Wörterbuch (Österreich + Deutschland) ---------------- */
+// "=wort" heißt: nur genau dieses Wort
+const DICT = [
+  ['🥛','milch','joghurt','jogurt','obers','schlagobers','sahne','kakao','buttermilch','kefir'],
+  ['🧈','butter','margarine'],
+  ['🧀','käse','kaese','gouda','emmentaler','mozzarella','parmesan','feta','frischkäse'],
+  ['🥣','topfen','quark','müsli','muesli','cornflakes','haferflocken','flocken','pudding'],
+  ['🥚','eier','=ei'],
+  ['🍞','brot','toast','wecken'],
+  ['🥖','baguette','stangerl','=semmel','semmeln','semmerl','brötchen','weckerl','gebäck'],
+  ['🥐','kipferl','croissant'],
+  ['🥨','brezel','breze','salzstangerl'],
+  ['🍎','apfel','äpfel','aepfel'],
+  ['🍌','banane'],
+  ['🍊','orange','mandarine','clementine','grapefruit'],
+  ['🍋','zitrone','limette'],
+  ['🍐','birne'],
+  ['🍇','trauben','weintrauben','=traube'],
+  ['🍓','erdbeere','himbeere','beeren'],
+  ['🫐','heidelbeere','blaubeere'],
+  ['🍒','kirsche','weichsel'],
+  ['🍑','pfirsich','marille','aprikose','nektarine','zwetschke','pflaume'],
+  ['🥝','kiwi'],['🍍','ananas'],['🥭','mango'],['🍉','melone','wassermelone'],['🥥','kokos'],
+  ['🍅','tomate','paradeiser','paradeis'],
+  ['🥒','gurke','gurkerl','zucchini'],
+  ['🥕','karotte','möhre','moehre','rübe'],
+  ['🥔','kartoffel','erdäpfel','erdapfel','erdaepfel'],
+  ['🧅','zwiebel','schalotte'],
+  ['🧄','knoblauch'],
+  ['🥦','brokkoli','broccoli','karfiol','blumenkohl'],
+  ['🥬','salat','häuptel','spinat','kohl','kraut','lauch','porree','mangold','rucola'],
+  ['🫑','paprika'],['🌶️','chili','pfefferoni'],
+  ['🌽','mais','kukuruz'],
+  ['🍆','melanzani','aubergine'],
+  ['🍄','pilze','champignon','schwammerl','pilz'],
+  ['🥑','avocado'],
+  ['🫛','erbsen','fisolen','=bohnen','zuckerschoten'],
+  ['🫘','kidneybohnen','linsen','kichererbsen'],
+  ['🌿','petersilie','schnittlauch','basilikum','kräuter','dill','minze','koriander'],
+  ['🫚','ingwer'],
+  ['🥜','nüsse','nuesse','erdnüsse','erdnuss','nuss','mandeln','walnüsse','haselnüsse'],
+  ['🌰','maroni','kastanien'],
+  ['🍝','nudeln','spaghetti','pasta','penne','fusilli','spätzle','lasagne'],
+  ['🍚','reis','risotto'],
+  ['🌾','mehl','grieß','griess','germ','hefe','backpulver','semmelbrösel','brösel'],
+  ['🍬','zucker','zuckerl','bonbons','gummibärchen','gummi'],
+  ['🍯','honig'],
+  ['🫙','marmelade','konfitüre','nutella','aufstrich','senf','ketchup','mayonnaise','mayo','pesto','gurkerlglas'],
+  ['🥫','dose','dosen','sauce','soße','sosse','suppe','thunfisch','mais-dose','passata'],
+  ['🧂','salz','pfeffer','gewürz','gewürze'],
+  ['🫒','oliven','olivenöl','=öl','oel','essig','sonnenblumenöl','rapsöl'],
+  ['🍫','schokolade','schoko','schokoriegel','manner','nutella-riegel'],
+  ['🍪','kekse','=keks','biskotten','kräcker','cracker','zwieback'],
+  ['🍰','kuchen','torte','strudel','krapfen'],
+  ['🍦','=eis','eiscreme','speiseeis','eislutscher'],
+  ['🧊','eiswürfel'],
+  ['🥞','palatschinken','pfannkuchen','pancakes'],
+  ['🧇','waffeln','waffel'],
+  ['🫓','tortilla','wraps','fladenbrot'],
+  ['🥟','knödel','tortellini','ravioli','maultaschen'],
+  ['🍕','pizza'],
+  ['🍟','pommes'],
+  ['🥔','chips'],
+  ['🧃','saft','eistee'],
+  ['💧','wasser','mineralwasser','mineral'],
+  ['🥤','limo','limonade','cola','almdudler','sprite','fanta','eistee'],
+  ['☕','kaffee','espresso'],
+  ['🍵','=tee','teebeutel','früchtetee'],
+  ['🍺','bier'],['🍷','wein','sekt'],
+  ['🍗','hendl','huhn','hühnchen','hähnchen','hühner','geflügel','pute','truthahn','chicken'],
+  ['🥩','fleisch','steak','faschiertes','hackfleisch','schnitzel','rind','schwein','lamm','gulasch'],
+  ['🥓','speck','schinken','salami','aufschnitt','extrawurst','leberkäse'],
+  ['🌭','würstel','wurst','frankfurter','wiener','käsekrainer','bratwurst'],
+  ['🐟','fisch','lachs','forelle','fischstäbchen','sardinen','hering'],
+  ['🦐','garnelen','shrimps','scampi'],
+  ['🧻','klopapier','toilettenpapier','küchenrolle','taschentücher','servietten'],
+  ['🧼','seife','spülmittel','abwaschmittel'],
+  ['🧴','shampoo','duschgel','creme','bodylotion','sonnencreme'],
+  ['🪥','zahnbürste','zahnpasta','zahncreme'],
+  ['🧽','schwamm','schwämme'],
+  ['🧺','waschmittel','weichspüler'],
+  ['🗑️','müllsäcke','müllbeutel'],
+  ['🔋','batterien'],
+  ['🍼','babynahrung','windeln','fläschchen'],
+  ['🐶','hundefutter'],['🐱','katzenfutter','katzenstreu'],
+  ['💐','blumen'],
+];
+const WORDS = [];
+DICT.forEach(([emo,...keys])=>keys.forEach(k=>{
+  const exact = k.startsWith('=');
+  WORDS.push({emo, key: exact?k.slice(1):k, exact});
+}));
+
+function norm(s){return s.toLowerCase().replace(/ß/g,'ss').trim()}
+function emojiFor(name){
+  const words = norm(name).split(/[\s\-\/,.()]+/).filter(Boolean);
+  const full = norm(name).replace(/\s+/g,'');
+  let best=null, score=-1;
+  for(const w of words.concat(words.length>1?[full]:[])){
+    for(const {emo,key,exact} of WORDS){
+      const k = norm(key);
+      let s=-1;
+      if(w===k) s=300+k.length;
+      else if(!exact && w.endsWith(k)) s=200+k.length;      // Hauptwort am Ende (Apfel-SAFT)
+      else if(!exact && w.startsWith(k)) s=100+k.length;    // Mehrzahl (Bananen)
+      if(s>score){score=s;best=emo}
+    }
+  }
+  return best;
+}
+const COLORS=['#FF8A3D','#3D8BFF','#22B573','#B05CFF','#F0565B','#00A6A6','#E6A800'];
+function colorFor(name){let h=0;for(const c of name)h=(h*31+c.charCodeAt(0))>>>0;return COLORS[h%COLORS.length]}
+
+/* ---------------- Menge erkennen ---------------- */
+const UNIT = '(x|×|stk\\.?|stück|kg|g|dag|dkg|l|ml|liter|packung(?:en)?|pkg\\.?|pk\\.?|dose(?:n)?|flasche(?:n)?|becher|bund|glas|gläser|netz|sack|tafel(?:n)?)';
+function parse(line){
+  let t = line.trim()
+    .replace(/^\[[^\]]*\]\s*[^:]{1,40}:\s*/,'')          // [09.11.26, 20:56] Name:
+    .replace(/^\d{1,2}\.\d{1,2}\.\d{2,4},?\s+\d{1,2}:\d{2}\s*-\s*[^:]{1,40}:\s*/,'') // 09.11.26, 20:56 - Name:
+    .replace(/^(?:[-•*·▪◦–]|☐|☑️?|✅|✔️?|⬜|◻️?|\d+[.)])\s*/,'')
+    .replace(/^\*+|\*+$/g,'').replace(/^_+|_+$/g,'').trim();
+  if(/^🛒/.test(t)) return null;
+  if(!t) return null;
+  let qty=null, unit='';
+  let m = t.match(new RegExp('^(\\d+(?:[.,]\\d+)?)\\s*'+UNIT+'?\\s+(.+)$','i'));
+  if(m){qty=m[1].replace(',','.');unit=(m[2]||'');t=m[3]}
+  else{
+    m = t.match(new RegExp('^(.+?)\\s+(?:x\\s*)?(\\d+(?:[.,]\\d+)?)\\s*'+UNIT+'?$','i'));
+    if(m){t=m[1];qty=m[2].replace(',','.');unit=(m[3]||'')}
+  }
+  if(/^(x|×)$/i.test(unit)) unit='';
+  if(/^stk\.?$/i.test(unit)) unit='Stück';
+  t = t.charAt(0).toUpperCase()+t.slice(1);
+  return {id: Date.now().toString(36)+Math.random().toString(36).slice(2,7), name:t, qty, unit, status:'open'};
+}
+function qtyLabel(it){
+  if(!it.qty) return '';
+  return it.unit ? `${it.qty.replace('.',',')} ${it.unit}` : `${it.qty}×`;
+}
+
+/* ---------------- Speicher: mehrere Listen, lokal + dauerhaft in der App (db) ---------------- */
+function load(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}}
+function saveLocal(k,v){try{localStorage.setItem(k,JSON.stringify(v));return true}catch(e){return false}}
+const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+function newList(name,items){return {id:uid(),name,items:items||[],history:[]}}
+
+// Alte Speicherformate übernehmen
+function migrate(cur, sav){
+  const lists=[];
+  if(cur && cur.items && cur.items.length) lists.push({...newList('Einkaufsliste',cur.items),history:cur.history||[]});
+  (sav&&sav.lists||[]).forEach(l=>{
+    if(!lists.some(x=>x.name===l.name)) lists.push(newList(l.name,(l.items||[]).map(x=>parse(itemText(x))).filter(Boolean)));
+  });
+  if(!lists.length) lists.push(newList('Einkaufsliste'));
+  return {lists,activeId:lists[0].id,sound:!cur||cur.sound!==false,rev:(cur&&cur.rev)||0};
+}
+let store = load('ek_store',null) || migrate(load('ek_state',null), load('ek_saved',null));
+let photos = load('ek_photos',{});
+let state; // = aktive Liste
+function pickActive(){
+  if(!store.lists.length) store.lists.push(newList('Einkaufsliste'));
+  state = store.lists.find(l=>l.id===store.activeId) || store.lists[0];
+  store.activeId=state.id;
+}
+pickActive();
+let DB=null, cloudOK=false;
+
+function setSync(kind,text){const s=$('sync');s.className='sync '+kind;s.textContent=text}
+function hashKey(s){let h=0x811c9dc5;for(const c of s){h^=c.codePointAt(0);h=Math.imul(h,16777619)>>>0}return 'p'+h.toString(16)}
+
+// Schreibt ein Dokument – nie zwei gleichzeitig, kurze Pausen werden zusammengefasst
+const writers={};
+function queueWrite(path,getData){
+  if(!DB) return;
+  const w = writers[path] || (writers[path]={timer:null,busy:false,again:false});
+  clearTimeout(w.timer);
+  w.timer=setTimeout(async function run(){
+    if(w.busy){w.again=true;return}
+    w.busy=true; setSync('', '💾 speichert…');
+    try{ await DB.doc(path).set(getData()); setSync('ok','☁️ gespeichert') }
+    catch(e){ handleDbError(e) }
+    w.busy=false;
+    if(w.again){w.again=false;run()}
+  },400);
+}
+function handleDbError(e){
+  if(e&&e.code==='quota_exceeded') setSync('warn','⚠️ Speicher voll');
+  else if(e&&e.code==='invalid_argument'){cloudOK=false;setSync('warn','💾 nur auf diesem Gerät')}
+  else setSync('warn','⚠️ nicht gespeichert');
+}
+function persist(){
+  store.rev=Date.now();
+  saveLocal('ek_store',store);
+  queueWrite('lists/all',()=>JSON.parse(JSON.stringify(store)));
+}
+
+function editing(){const a=document.activeElement;return a&&(a.classList.contains('edit-input')||a.id==='input'||a.id==='dialogInput'||a.id==='dialogArea')||!$('dialog').classList.contains('hidden')}
+function refreshView(){
+  if(!$('parent').classList.contains('hidden')){ if(!editing()) renderParent(); }
+  else if(!$('kid').classList.contains('hidden')){ renderKid('none'); }
+}
+
+async function initCloud(){
+  let db=null;
+  try{ db = window.claude && await claude.use('db'); }catch(e){}
+  if(!db){ setSync('warn','💾 nur auf diesem Gerät'); return; }
+  DB=db;
+  const timer=setTimeout(()=>{ if(!cloudOK) setSync('warn','⏳ Speicher nicht erreichbar') },10000);
+  let first=true;
+  DB.doc('lists/all').onSnapshot(async snap=>{
+    if(snap.metadata.hasPendingWrites) return;
+    if(!snap.metadata.fromCache){clearTimeout(timer);cloudOK=true;setSync('ok','☁️ gespeichert')}
+    if(snap.exists){
+      const d=snap.data();
+      if(!first || (d.rev||0)>=(store.rev||0)){
+        if((d.rev||0)!==(store.rev||0) && Array.isArray(d.lists)){
+          const keepActive=store.activeId;
+          store=JSON.parse(JSON.stringify(d));
+          if(store.lists.some(l=>l.id===keepActive)) store.activeId=keepActive; // jedes Gerät behält seine gewählte Liste
+          pickActive(); saveLocal('ek_store',store); refreshView();
+        }
+      } else persist();                       // lokal neuer → hochladen
+      first=false;
+    } else if(first && !snap.metadata.fromCache){
+      first=false;
+      // Daten der Vorgängerversion übernehmen
+      try{
+        const [c,s]=await Promise.all([DB.doc('lists/current').get(),DB.doc('lists/saved').get()]);
+        if(c.exists||s.exists){
+          const m=migrate(c.exists?c.data():null, s.exists?s.data():null);
+          const have=new Set(store.lists.map(l=>l.name));
+          m.lists.forEach(l=>{ if(!have.has(l.name)||l.items.length&&!store.lists.find(x=>x.name===l.name).items.length){
+            store.lists=store.lists.filter(x=>!(x.name===l.name&&!x.items.length)); store.lists.push(l);} });
+          pickActive(); refreshView();
+        }
+      }catch(e){}
+      if(store.lists.some(l=>l.items.length)||store.lists.length>1) persist();
+    }
+  },e=>{clearTimeout(timer);handleDbError(e)});
+
+  DB.collection('photos').onSnapshot(qs=>{
+    let changed=false;
+    qs.docs.forEach(d=>{const b=d.data(); if(b&&b.name&&b.img&&photos[b.name]!==b.img){photos[b.name]=b.img;changed=true}});
+    if(changed){ saveLocal('ek_photos',photos); refreshView(); }
+  },()=>{});
+}
+
+/* ---------------- Hilfen ---------------- */
+const $=id=>document.getElementById(id);
+function esc(s){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
+function thumbHTML(it, cls){
+  const p = photos[norm(it.name)];
+  if(p) return `<div class="${cls}"><img src="${p}" alt=""></div>`;
+  const e = emojiFor(it.name);
+  if(e) return `<div class="${cls}"><span class="emo">${e}</span></div>`;
+  return `<div class="${cls} letter" style="background:${colorFor(it.name)}">${esc(it.name.charAt(0))}</div>`;
+}
+// Dialog: {text, input:'Vorgabe' | undefined, buttons:[[label, klasse, fn(wert)]]}
+function dialog({text,input,area,buttons}){
+  $('dialogText').textContent=text;
+  const ar=$('dialogArea'); ar.classList.toggle('hidden',!area); ar.value='';
+  if(area) setTimeout(()=>ar.focus(),50);
+  const inp=$('dialogInput'); inp.classList.toggle('hidden',input===undefined); inp.value=input||'';
+  const box=$('dialogBtns'); box.innerHTML='';
+  const close=()=>$('dialog').classList.add('hidden');
+  [['Abbrechen','btn-grey',()=>{}],...buttons].forEach(([l,c,fn])=>{
+    const b=document.createElement('button'); b.className='btn '+c; b.textContent=l;
+    b.onclick=()=>{const v=area?ar.value:inp.value.trim(); close(); fn(v)}; box.appendChild(b);
+  });
+  $('dialog').classList.remove('hidden');
+  if(input!==undefined) setTimeout(()=>{inp.focus();inp.select()},50);
+  inp.onkeydown=e=>{if(e.key==='Enter'){box.lastChild.click()}};
+}
+function ask(text,yes){dialog({text,buttons:[['Ja','btn-red',yes]]})}
+function show(view){
+  ['parent','kid','finish'].forEach(v=>$(v).classList.toggle('hidden',v!==view));
+  window.scrollTo(0,0);
+}
+function itemText(it){return (it.qty? (String(it.qty).replace('.',',')+' '+(it.unit?it.unit+' ':'')) : '')+it.name}
+function uniqueName(base){let n=base,i=2;while(store.lists.some(l=>norm(l.name)===norm(n)))n=`${base} ${i++}`;return n}
+
+/* ---------------- Eltern-Ansicht ---------------- */
+function renderParent(){
+  renderTabs();
+  $('listName').textContent=state.name;
+  $('delListBtn').classList.toggle('hidden', store.lists.length<2 && !state.items.length);
+  const ul=$('list'); ul.innerHTML='';
+  state.items.forEach((it,i)=>{
+    const li=document.createElement('li'); li.className='item';
+    const st = it.status==='done'?'<span class="st done">✓ erledigt</span>':it.status==='missing'?'<span class="st missing">nicht da</span>':'';
+    li.innerHTML = thumbHTML(it,'thumb') +
+      `<div class="name" data-edit="${i}">${esc(it.name)}${st}<span class="qty">${esc(qtyLabel(it))}</span></div>
+       <button class="icon-btn" data-up="${i}" title="Nach oben" ${i===0?'style="visibility:hidden"':''}>⬆️</button>
+       <button class="icon-btn" data-photo="${i}" title="Foto">📷</button>
+       <button class="icon-btn" data-del="${i}" title="Entfernen">✕</button>`;
+    ul.appendChild(li);
+  });
+  const n=state.items.length, open=state.items.filter(i=>i.status==='open').length;
+  $('emptyMsg').classList.toggle('hidden',n>0);
+  $('goBtn').disabled = n===0;
+  $('goBtn').textContent = (open>0 && open<n) ? 'Weiter einkaufen ▶' : "Los geht's! ▶";
+  $('restartBtn').classList.toggle('hidden', open===n);
+  $('cleanBtn').classList.toggle('hidden', open===n);
+  $('clearBtn').classList.toggle('hidden', n===0);
+  $('waLink').href = 'https://wa.me/?text='+encodeURIComponent(listAsText());
+  $('waLink').classList.toggle('off', n===0);
+  $('copyTextBtn').disabled = n===0;
+}
+function listAsText(){
+  const open=state.items.filter(i=>i.status!=='done');
+  return `🛒 *${state.name}*\n` + (open.length?open:state.items).map(i=>'• '+itemText(i)).join('\n');
+}
+function toast(msg){
+  document.querySelectorAll('.toast').forEach(x=>x.remove());
+  const t=document.createElement('div'); t.className='toast'; t.textContent=msg; document.body.appendChild(t);
+  setTimeout(()=>{t.style.opacity='0'},msg.length>40?4000:1800); setTimeout(()=>t.remove(),msg.length>40?4400:2200);
+}
+$('copyTextBtn').onclick=async()=>{
+  try{ await navigator.clipboard.writeText(listAsText()); toast('📋 Kopiert – jetzt in WhatsApp einfügen'); }
+  catch(e){ dialog({text:'Kopieren hat nicht geklappt. Markiere den Text und kopiere ihn selbst:',input:undefined,buttons:[]});
+            const ar=$('dialogArea'); ar.classList.remove('hidden'); ar.value=listAsText(); ar.select(); }
+};
+function importText(raw){
+  const lines=raw.split(/\n+/);
+  let name='';
+  for(const l of lines){ const m=l.replace(/^\[[^\]]*\]\s*[^:]{1,40}:\s*/,'').match(/^🛒\s*\*?([^*]+)\*?/); if(m){name=m[1].trim();break} }
+  const items=lines.map(parse).filter(Boolean);
+  return {name,items};
+}
+$('importBtn').onclick=()=>{
+  dialog({text:'WhatsApp-Nachricht mit der Liste hier einfügen:',area:true,buttons:[
+    ['Zur aktuellen','btn-orange',v=>{
+      const {items}=importText(v); if(!items.length) return toast('Keine Artikel gefunden');
+      const have=new Set(state.items.map(i=>norm(i.name)));
+      let n=0; items.forEach(it=>{ if(!have.has(norm(it.name))){state.items.push(it);n++} });
+      persist(); renderParent(); toast(`✓ ${n} Artikel dazugegeben`);
+    }],
+    ['Als neue Liste','btn-green',v=>{
+      const {name,items}=importText(v); if(!items.length) return toast('Keine Artikel gefunden');
+      const l=newList(uniqueName(name||'Aus WhatsApp'),items); store.lists.push(l); persist(); switchTo(l.id);
+      toast(`✓ „${l.name}“ mit ${items.length} Artikeln geladen`);
+    }]]});
+};
+function renderTabs(){
+  const c=$('chips'); c.innerHTML='';
+  store.lists.forEach(l=>{
+    const b=document.createElement('button'); b.className='tab'+(l.id===state.id?' on':''); b.dataset.id=l.id;
+    const open=l.items.filter(i=>i.status==='open').length;
+    b.innerHTML=`${esc(l.name)} <small>${open||''}</small>`;
+    c.appendChild(b);
+  });
+  const nb=document.createElement('button'); nb.className='tab add'; nb.id='newListBtn'; nb.textContent='＋ Neue Liste';
+  c.appendChild(nb);
+}
+function switchTo(id){store.activeId=id;pickActive();saveLocal('ek_store',store);renderParent();window.scrollTo(0,0)}
+$('chips').onclick=e=>{
+  const b=e.target.closest('button'); if(!b) return;
+  if(b.id==='newListBtn'){
+    dialog({text:'Wie soll die neue Liste heißen?',input:'',buttons:[['Anlegen','btn-green',name=>{
+      const l=newList(uniqueName(name||'Neue Liste')); store.lists.push(l); persist(); switchTo(l.id); $('input').focus();
+    }]]});
+  } else if(b.dataset.id) switchTo(b.dataset.id);
+};
+$('renameBtn').onclick=()=>{
+  dialog({text:'Neuer Name für die Liste:',input:state.name,buttons:[['Speichern','btn-green',name=>{
+    if(!name||name===state.name) return;
+    state.name = store.lists.some(l=>l!==state&&norm(l.name)===norm(name)) ? uniqueName(name) : name;
+    persist(); renderParent();
+  }]]});
+};
+$('copyBtn').onclick=()=>{
+  dialog({text:`Kopie von „${state.name}“ anlegen (alle Artikel wieder offen). Name:`,input:uniqueName(state.name+' (Kopie)'),buttons:[['Kopieren','btn-green',name=>{
+    const items=state.items.map(i=>({...i,id:uid(),status:'open'}));
+    const l=newList(uniqueName(name||state.name),items); store.lists.splice(store.lists.indexOf(state)+1,0,l); persist(); switchTo(l.id);
+  }]]});
+};
+$('delListBtn').onclick=()=>{
+  ask(`Liste „${state.name}“ mit ${state.items.length} Artikel(n) löschen?`,()=>{
+    const i=store.lists.indexOf(state); store.lists.splice(i,1);
+    if(!store.lists.length) store.lists.push(newList('Einkaufsliste'));
+    store.activeId=store.lists[Math.max(0,i-1)].id; pickActive(); persist(); renderParent();
+  });
+};
+$('addBtn').onclick=()=>{
+  const lines=$('input').value.split(/[\n,;]+/);
+  lines.forEach(l=>{const it=parse(l); if(it) state.items.push(it)});
+  $('input').value=''; persist(); renderParent();
+};
+$('input').addEventListener('keydown',e=>{ if(e.key==='Enter' && (e.metaKey||e.ctrlKey)) $('addBtn').click(); });
+
+function startEdit(i, el){
+  const it=state.items[i];
+  const inp=document.createElement('input'); inp.className='edit-input'; inp.value=itemText(it);
+  el.replaceWith(inp); inp.focus(); inp.select();
+  let done=false;
+  const finish=(commit)=>{
+    if(done) return; done=true;
+    if(commit){
+      const p=parse(inp.value);
+      if(!p) state.items.splice(state.items.indexOf(it),1);
+      else { it.name=p.name; it.qty=p.qty; it.unit=p.unit; }
+      persist();
+    }
+    renderParent();
+  };
+  inp.onkeydown=e=>{ if(e.key==='Enter') finish(true); if(e.key==='Escape') finish(false); };
+  inp.onblur=()=>finish(true);
+}
+
+let photoTarget=null;
+$('list').onclick=e=>{
+  const nm=e.target.closest('[data-edit]'); if(nm) return startEdit(+nm.dataset.edit, nm);
+  const b=e.target.closest('button'); if(!b) return;
+  if(b.dataset.del!==undefined){state.items.splice(+b.dataset.del,1);persist();renderParent()}
+  if(b.dataset.up!==undefined){const i=+b.dataset.up;[state.items[i-1],state.items[i]]=[state.items[i],state.items[i-1]];persist();renderParent()}
+  if(b.dataset.photo!==undefined){
+    photoTarget=state.items[+b.dataset.photo];
+    const pick=id=>{$(id).value='';$(id).click()};
+    const btns=[['🖼️ Galerie','btn-green',()=>pick('fileInput')],['📷 Foto machen','btn-orange',()=>pick('camInput')]];
+    if(photos[norm(photoTarget.name)]) btns.unshift(['Foto entfernen','btn-red',()=>removePhoto(photoTarget)]);
+    dialog({text:`Bild für „${photoTarget.name}“`,buttons:btns});
+  }
+};
+async function handlePhoto(e){
+  const f=e.target.files&&e.target.files[0]; const target=photoTarget;
+  if(!f||!target) return;
+  toast('⏳ Foto wird geladen…');
+  try{
+    let src, w, h;
+    try{ src=await createImageBitmap(f); w=src.width; h=src.height; }
+    catch(_){
+      src=new Image(); const url=URL.createObjectURL(f); src.src=url;
+      await src.decode(); w=src.naturalWidth; h=src.naturalHeight; setTimeout(()=>URL.revokeObjectURL(url),1000);
+    }
+    if(!w||!h) throw new Error('leer');
+    const S=420, c=document.createElement('canvas'); c.width=c.height=S;
+    const ctx=c.getContext('2d'); ctx.fillStyle='#fff'; ctx.fillRect(0,0,S,S);
+    const sq=Math.min(w,h); ctx.drawImage(src,(w-sq)/2,(h-sq)/2,sq,sq,0,0,S,S);
+    // schwarzes Bild erkennen
+    const px=ctx.getImageData(0,0,S,S).data; let sum=0;
+    for(let i=0;i<px.length;i+=400) sum+=px[i]+px[i+1]+px[i+2];
+    if(sum/(px.length/400)<12) return toast('Das Foto ist schwarz 😕 Bitte nochmal versuchen oder aus der Galerie wählen.');
+    const key=norm(target.name), data=c.toDataURL('image/jpeg',0.75);
+    photos[key]=data; saveLocal('ek_photos',photos);
+    queueWrite('photos/'+hashKey(key),()=>({name:key,img:data}));
+    renderParent(); toast('✓ Foto gespeichert');
+  }catch(err){
+    toast('Dieses Bild konnte nicht geladen werden. Bitte ein anderes wählen (JPG/PNG).');
+  }
+}
+function removePhoto(it){
+  const key=norm(it.name); delete photos[key]; saveLocal('ek_photos',photos);
+  if(DB) DB.doc('photos/'+hashKey(key)).delete().catch(()=>{});
+  renderParent();
+}
+$('fileInput').onchange=handlePhoto;
+$('camInput').onchange=handlePhoto;
+$('clearBtn').onclick=()=>ask(`Alle Artikel aus „${state.name}“ löschen?`,()=>{state.items=[];state.history=[];persist();renderParent()});
+$('restartBtn').onclick=()=>{state.items.forEach(i=>i.status='open');state.history=[];persist();renderParent()};
+$('cleanBtn').onclick=()=>{state.items=state.items.filter(i=>i.status!=='done');state.items.forEach(i=>i.status='open');state.history=[];persist();renderParent()};
+$('goBtn').onclick=()=>{
+  if(state.items.every(i=>i.status!=='open')){state.items.forEach(i=>i.status='open');state.history=[]}
+  persist(); show('kid'); renderKid('in'); speakCurrent();
+};
+
+/* ---------------- Kinder-Ansicht ---------------- */
+function current(){return state.items.find(i=>i.status==='open')}
+function renderKid(anim){
+  const it=current();
+  if(!it){ return finish(); }
+  const total=state.items.length, doneN=state.items.filter(i=>i.status!=='open').length;
+  $('count').textContent=`${doneN+1}/${total}`;
+  $('barFill').style.width=(doneN/total*100)+'%';
+  const tmp=document.createElement('div'); tmp.innerHTML=thumbHTML(it,'pic');
+  const newPic=tmp.firstChild; newPic.id='pic'; $('pic').replaceWith(newPic);
+  $('kname').textContent=it.name;
+  const q=qtyLabel(it);
+  $('kqtyWrap').innerHTML = q?`<span class="kqty">${esc(q)}</span>`:'';
+  const n=parseInt(it.qty,10), e=emojiFor(it.name)||'🔵';
+  $('repeat').textContent = (!it.unit && n>=2 && n<=10 && String(n)===it.qty) ? e.repeat(n) : '';
+  $('backBtn').disabled = state.history.length===0;
+  $('skipBtn').disabled = state.items.filter(i=>i.status==='open').length<2;
+  const card=$('card'); card.className='card'; void card.offsetWidth; card.classList.add(anim||'in');
+  $('soundIcon').textContent = store.sound?'🔊':'🔇';
+  $('kidList').textContent = '🛒 '+state.name;
+}
+function act(status){
+  const it=current(); if(!it) return;
+  const card=$('card'); card.className='card'; void card.offsetWidth; card.classList.add('out');
+  it.status=status; state.history.push(it.id); persist();
+  if(status==='done') miniBurst();
+  setTimeout(()=>{renderKid('in'); speakCurrent();},300);
+}
+$('doneBtn').onclick=()=>act('done');
+// Überspringen: Artikel ans Ende hängen – er kommt nach den anderen nochmal dran
+$('skipBtn').onclick=()=>{
+  const it=current(); if(!it) return;
+  if(state.items.filter(i=>i.status==='open').length<2) return;
+  const card=$('card'); card.className='card'; void card.offsetWidth; card.classList.add('out');
+  state.items.splice(state.items.indexOf(it),1); state.items.push(it); persist();
+  setTimeout(()=>{renderKid('in'); speakCurrent();},300);
+};
+$('missBtn').onclick=()=>act('missing');
+$('backBtn').onclick=()=>{
+  const id=state.history.pop(); const it=state.items.find(i=>i.id===id);
+  if(it){it.status='open';
+    // zurückgeholten Artikel wieder an seine Stelle in der Reihenfolge (erster offener)
+    const idx=state.items.indexOf(it); state.items.splice(idx,1);
+    const firstOpen=state.items.findIndex(i=>i.status==='open');
+    state.items.splice(firstOpen===-1?state.items.length:Math.min(firstOpen,idx),0,it);
+  }
+  persist(); renderKid('back'); speakCurrent();
+};
+
+/* Vorlesen */
+function speak(text){
+  try{
+    if(!('speechSynthesis' in window)) return;
+    speechSynthesis.cancel();
+    const u=new SpeechSynthesisUtterance(text); u.lang='de-AT'; u.rate=.9;
+    const v=speechSynthesis.getVoices().find(v=>/^de/i.test(v.lang)); if(v) u.voice=v;
+    speechSynthesis.speak(u);
+  }catch(e){}
+}
+function speakCurrent(force){
+  const it=current(); if(!it || (!store.sound && !force)) return;
+  const q = it.qty ? (it.unit? `${it.qty.replace('.',',')} ${it.unit} ` : `${it.qty} mal `) : '';
+  speak(q+it.name);
+}
+$('speakBtn').onclick=()=>speakCurrent(true);
+$('soundBtn').onclick=()=>{store.sound=!store.sound;persist();$('soundIcon').textContent=store.sound?'🔊':'🔇'};
+
+/* Eltern-Knopf: 1,2 Sekunden gedrückt halten */
+let holdT=null;
+function holdStart(e){
+  e.preventDefault(); const f=$('holdFill'); f.style.transition='height 1.2s linear'; f.style.height='100%';
+  holdT=setTimeout(()=>{holdEnd();show('parent');renderParent()},1200);
+}
+function holdEnd(){clearTimeout(holdT);const f=$('holdFill');f.style.transition='height .2s';f.style.height='0'}
+['pointerdown'].forEach(ev=>$('parentBtn').addEventListener(ev,holdStart));
+['pointerup','pointerleave','pointercancel'].forEach(ev=>$('parentBtn').addEventListener(ev,holdEnd));
+$('parentBtn').addEventListener('contextmenu',e=>e.preventDefault());
+
+/* Fertig */
+function finish(){
+  show('finish');
+  const miss=state.items.filter(i=>i.status==='missing');
+  $('missingBox').classList.toggle('hidden',!miss.length);
+  $('missingList').textContent=miss.map(i=>i.name).join(', ');
+  confetti(40);
+  if(store.sound) speak('Super gemacht! Alles erledigt!');
+}
+$('toParentBtn').onclick=()=>{show('parent');renderParent()};
+
+function confetti(n){
+  const set=['🎉','⭐','🎈','💚','✨','🍭','🌟'];
+  for(let i=0;i<n;i++){
+    const s=document.createElement('div'); s.className='confetti';
+    s.textContent=set[i%set.length]; s.style.left=Math.random()*100+'vw';
+    s.style.animationDuration=(2+Math.random()*2.5)+'s'; s.style.animationDelay=Math.random()*1.2+'s';
+    document.body.appendChild(s); setTimeout(()=>s.remove(),6000);
+  }
+}
+function miniBurst(){
+  const set=['⭐','✨','💚'];
+  for(let i=0;i<6;i++){
+    const s=document.createElement('div'); s.className='confetti'; s.textContent=set[i%3];
+    s.style.left=(30+Math.random()*40)+'vw'; s.style.animationDuration=(1.2+Math.random())+'s';
+    document.body.appendChild(s); setTimeout(()=>s.remove(),3000);
+  }
+}
+
+/* Start */
+renderParent();
+if(state.items.length && state.items.some(i=>i.status!=='open') && current()){ show('kid'); renderKid('in'); }
+$('sync').classList.add('hidden');
+if('serviceWorker' in navigator && location.protocol!=='file:'){
+  navigator.serviceWorker.register('sw.js').catch(()=>{});
+}
+</script>
+</body>
+</html>
